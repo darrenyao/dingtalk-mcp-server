@@ -5,10 +5,12 @@ const $OpenApi = require('@alicloud/openapi-client');
 const $Util = require('@alicloud/tea-util');
 const pkg = require('@alicloud/dingtalk');
 const DingTalkContact = require('@alicloud/dingtalk/contact_1_0');
+const DingTalkIM = require('@alicloud/dingtalk/im_1_0');
 const axios = require('axios');
 class DingtalkClient {
-    constructor(accessToken) {
+    constructor(accessToken, auth) {
         this.accessToken = accessToken;
+        this.auth = auth;
         const config = new $OpenApi.Config({});
         config.protocol = 'https';
         config.regionId = 'central';
@@ -16,10 +18,18 @@ class DingtalkClient {
     }
     async sendTextMessage(content, options = {}) {
         try {
-            const headers = {
-                'x-acs-dingtalk-access-token': this.accessToken
-            };
-            const request = {
+            // 获取用户token
+            if (!options.code) {
+                throw new Error('Missing authorization code');
+            }
+            const userToken = await this.auth.getUserToken(options.code);
+            const config = new $OpenApi.Config({});
+            config.protocol = 'https';
+            config.regionId = 'central';
+            const imClient = new DingTalkIM.default(config);
+            const sendMessageHeaders = new DingTalkIM.SendPersonalMessageHeaders({});
+            sendMessageHeaders.xAcsDingtalkAccessToken = userToken; // 使用用户token
+            const sendMessageRequest = new DingTalkIM.SendPersonalMessageRequest({
                 content: JSON.stringify({
                     content: content,
                     at: {
@@ -29,10 +39,11 @@ class DingtalkClient {
                 }),
                 msgType: options.msgType || 'text',
                 ...(options.openConversationId && { openConversationId: options.openConversationId }),
-                ...(options.receiverUserId && { receiverUserId: options.receiverUserId })
-            };
-            await this.contactClient.sendPersonalMessageWithOptions(request, headers, {});
-            return true;
+                ...(options.receiverUserId && { receiverUid: options.receiverUserId })
+            });
+            const response = await imClient.sendPersonalMessageWithOptions(sendMessageRequest, sendMessageHeaders, new $Util.RuntimeOptions({}));
+            console.error('Send message response:', JSON.stringify(response, null, 2));
+            return response.body?.success === 'true';
         }
         catch (error) {
             console.error('Failed to send message:', error);

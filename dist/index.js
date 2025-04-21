@@ -98,7 +98,7 @@ class DingTalkServer {
     async initializeClient() {
         try {
             const token = await this.auth.getAppAccessToken();
-            this.client = new client_js_1.DingtalkClient(token);
+            this.client = new client_js_1.DingtalkClient(token, this.auth);
             this.isInitialized = true;
         }
         catch (error) {
@@ -244,26 +244,35 @@ class DingTalkServer {
                         }],
                 };
             }
+            // TODO: 这里需要从客户端获取授权码
+            return {
+                content: [{
+                        type: "text",
+                        text: `发送消息需要用户授权，请先获取授权码`,
+                    }],
+            };
+            /* 暂时注释掉发送消息的代码，等待获取授权码
             const success = await this.client.sendTextMessage(content, {
-                receiverUserId: userId,
-                msgType: 'text'
+              receiverUserId: userId,
+              msgType: 'text',
+              code: authorizationCode
             });
             if (success) {
-                return {
-                    content: [{
-                            type: "text",
-                            text: `成功向 ${userName} 发送了私信: '${content}'`,
-                        }],
-                };
+              return {
+                content: [{
+                  type: "text",
+                  text: `成功向 ${userName} 发送了私信: '${content}'`,
+                }],
+              };
+            } else {
+              return {
+                content: [{
+                  type: "text",
+                  text: `向 ${userName} 发送私信失败`,
+                }],
+              };
             }
-            else {
-                return {
-                    content: [{
-                            type: "text",
-                            text: `向 ${userName} 发送私信失败`,
-                        }],
-                };
-            }
+            */
         }
         catch (error) {
             return {

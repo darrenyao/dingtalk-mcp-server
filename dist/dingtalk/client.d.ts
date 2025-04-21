@@ -11,15 +11,18 @@ export interface UserInfo {
 }
 export interface Auth {
     getAppAccessToken(): Promise<string>;
+    getUserToken(code: string): Promise<string>;
 }
 export declare class DingtalkClient {
     private contactClient;
     private accessToken;
-    constructor(accessToken: string);
+    private auth;
+    constructor(accessToken: string, auth: Auth);
     sendTextMessage(content: string, options?: {
         openConversationId?: string;
         receiverUserId?: string;
         msgType?: 'text' | 'reply' | 'markdown';
+        code?: string;
     }): Promise<boolean>;
     searchUsers(query: string, exactMatch?: boolean): Promise<any[]>;
     getUserInfo(userId: string): Promise<UserInfo | null>;

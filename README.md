@@ -60,7 +60,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "@modelcontextprotocol/server-dingtalk"
+        "@darrenyao/server-dingtalk"
       ],
       "env": {
         "DINGTALK_APP_KEY": "your_app_key",
