@@ -56,7 +56,6 @@ npm run dev
 
 - `DINGTALK_APP_KEY`: 钉钉应用的 AppKey
 - `DINGTALK_APP_SECRET`: 钉钉应用的 AppSecret
-- `DINGTALK_AGENT_ID`: 钉钉应用的 Agent ID
 
 ## 可用工具
 
