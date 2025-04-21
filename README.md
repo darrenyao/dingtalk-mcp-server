@@ -1,90 +1,90 @@
-# DingTalk MCP Server
+# 钉钉 MCP 服务器
 
-This is a Model Context Protocol (MCP) server implementation for DingTalk, allowing MCP clients to interact with DingTalk's API.
+这是一个钉钉的 Model Context Protocol (MCP) 服务器实现，允许 MCP 客户端与钉钉 API 进行交互。
 
-## Features
+## 功能特性
 
-- Send private messages to DingTalk users
-- Search for DingTalk users
-- Get detailed user information
-- Authentication with DingTalk app credentials
+- 向钉钉用户发送私信
+- 搜索钉钉用户
+- 获取用户详细信息
+- 使用钉钉应用凭证进行身份验证
 
-## Prerequisites
+## 环境要求
 
-- Node.js 16 or later
-- A DingTalk developer account with an app created
-- App credentials (AppKey and AppSecret)
+- Node.js 16 或更高版本
+- 钉钉开发者账号及已创建的应用
+- 应用凭证（AppKey 和 AppSecret）
 
-## Setup
+## 安装配置
 
-1. Clone the repository:
+1. 克隆仓库：
 ```bash
-git clone <repository-url>
-cd server-dingtalk
+git clone git@github.com:darrenyao/dingtalk-mcp-server.git
+cd dingtalk-mcp-server
 ```
 
-2. Install dependencies:
+2. 安装依赖：
 ```bash
 npm install
 ```
 
-3. Create a `.env` file in the root directory with your DingTalk app credentials:
+3. 在根目录创建 `.env` 文件并配置钉钉应用凭证：
 ```env
 DINGTALK_APP_KEY=your_app_key
 DINGTALK_APP_SECRET=your_app_secret
 DINGTALK_AGENT_ID=your_agent_id
 ```
 
-## Building and Running
+## 构建和运行
 
-1. Build the project:
+1. 构建项目：
 ```bash
 npm run build
 ```
 
-2. Start the server:
+2. 启动服务器：
 ```bash
 npm start
 ```
 
-For development with hot reloading:
+开发模式下使用热重载：
 ```bash
 npm run dev
 ```
 
-## Environment Variables
+## 环境变量
 
-- `DINGTALK_APP_KEY`: Your DingTalk app's AppKey
-- `DINGTALK_APP_SECRET`: Your DingTalk app's AppSecret
-- `DINGTALK_AGENT_ID`: Your DingTalk app's Agent ID
+- `DINGTALK_APP_KEY`: 钉钉应用的 AppKey
+- `DINGTALK_APP_SECRET`: 钉钉应用的 AppSecret
+- `DINGTALK_AGENT_ID`: 钉钉应用的 Agent ID
 
-## Available Tools
+## 可用工具
 
-The server provides the following tools:
+服务器提供以下工具：
 
-1. `dingtalk_send_message`: Send a private message to a DingTalk user
-   - Parameters:
-     - `user`: The name of the user to send the message to
-     - `content`: The message content
+1. `dingtalk_send_message`: 向钉钉用户发送私信
+   - 参数：
+     - `user`: 接收消息的用户名
+     - `content`: 消息内容
 
-2. `dingtalk_search_users`: Search for DingTalk users
-   - Parameters:
-     - `query`: The search query
-     - `exact_match`: Whether to perform an exact match search (optional)
+2. `dingtalk_search_users`: 搜索钉钉用户
+   - 参数：
+     - `query`: 搜索关键词
+     - `exact_match`: 是否进行精确匹配（可选）
 
-3. `dingtalk_get_user_info`: Get detailed information about a user
-   - Parameters:
-     - `user_id`: The ID of the user
+3. `dingtalk_get_user_info`: 获取用户详细信息
+   - 参数：
+     - `user_id`: 用户 ID
 
-## Error Handling
+## 错误处理
 
-The server provides detailed error messages in Chinese for better user experience. Common errors include:
+服务器提供中文错误信息以提供更好的用户体验。常见错误包括：
 
-- Authentication failures
-- User not found
-- Message sending failures
-- API rate limiting
+- 认证失败
+- 用户未找到
+- 消息发送失败
+- API 调用频率限制
 
-## License
+## 许可证
 
 MIT
