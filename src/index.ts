@@ -25,7 +25,7 @@ import {
   GetPromptRequest,
 } from "@modelcontextprotocol/sdk/types.js";
 import { DingtalkClient } from "./dingtalk/client.js";
-import { getAuth } from "./dingtalk/auth.js";
+import { getAuth, Auth } from "./dingtalk/auth.js";
 
 /**
  * Type alias for a note object.
@@ -78,17 +78,17 @@ const sendMessageTool: Tool = {
 
 const searchUsersTool: Tool = {
   name: "dingtalk_search_users",
-  description: "Search for DingTalk users by name or other criteria",
+  description: "搜索钉钉用户，返回匹配的用户ID列表。API返回格式为：{ hasMore: boolean, totalCount: number, list: string[] }，其中list数组包含匹配的用户ID",
   inputSchema: {
     type: "object",
     properties: {
       query: {
         type: "string",
-        description: "The search query to find users",
+        description: "搜索关键词",
       },
       exact_match: {
         type: "boolean",
-        description: "Whether to perform an exact match search",
+        description: "是否进行精确匹配（默认为 false）",
         default: false,
       },
     },
@@ -113,7 +113,9 @@ const getUserInfoTool: Tool = {
 
 class DingTalkServer {
   private server: Server;
-  private client: DingtalkClient;
+  private client: DingtalkClient | null = null;
+  private isInitialized = false;
+  private auth: Auth;
 
   constructor() {
     this.server = new Server(
@@ -130,9 +132,33 @@ class DingTalkServer {
       }
     );
 
-    this.client = new DingtalkClient(getAuth());
+    const appKey = process.env.DINGTALK_APP_KEY || '';
+    const appSecret = process.env.DINGTALK_APP_SECRET || '';
+    this.auth = getAuth(appKey, appSecret);
+
+    // Initialize auth and wait for token
+    this.initializeClient();
 
     this.setupHandlers();
+  }
+
+  private async initializeClient() {
+    try {
+      const token = await this.auth.getAppAccessToken();
+      this.client = new DingtalkClient(token, this.auth);
+      this.isInitialized = true;
+    } catch (error) {
+      console.error('Failed to initialize DingTalk client:', error);
+    }
+  }
+
+  private async ensureInitialized() {
+    if (!this.isInitialized) {
+      await this.initializeClient();
+      if (!this.isInitialized) {
+        throw new Error('DingTalk client is not initialized yet. Please wait a moment and try again.');
+      }
+    }
   }
 
   private setupHandlers() {
@@ -149,17 +175,20 @@ class DingTalkServer {
 
       switch (name) {
         case "dingtalk_send_message": {
-          const { user, content } = args as SendMessageArgs;
+          const typedArgs = args as unknown as SendMessageArgs;
+          const { user, content } = typedArgs;
           return await this.handleSendMessage(user, content);
         }
 
         case "dingtalk_search_users": {
-          const { query, exact_match } = args as SearchUsersArgs;
+          const typedArgs = args as unknown as SearchUsersArgs;
+          const { query, exact_match } = typedArgs;
           return await this.handleSearchUsers(query, exact_match);
         }
 
         case "dingtalk_get_user_info": {
-          const { user_id } = args as GetUserInfoArgs;
+          const typedArgs = args as unknown as GetUserInfoArgs;
+          const { user_id } = typedArgs;
           return await this.handleGetUserInfo(user_id);
         }
 
@@ -253,6 +282,10 @@ class DingTalkServer {
 
   private async handleSendMessage(user: string, content: string) {
     try {
+      await this.ensureInitialized();
+      if (!this.client) {
+        throw new Error('DingTalk client is not available');
+      }
       const users = await this.client.searchUsers(user);
       if (!users || users.length === 0) {
         return {
@@ -276,7 +309,20 @@ class DingTalkServer {
         };
       }
 
-      const success = await this.client.sendTextMessage(userId, content);
+      // TODO: 这里需要从客户端获取授权码
+      return {
+        content: [{
+          type: "text",
+          text: `发送消息需要用户授权，请先获取授权码`,
+        }],
+      };
+
+      /* 暂时注释掉发送消息的代码，等待获取授权码
+      const success = await this.client.sendTextMessage(content, {
+        receiverUserId: userId,
+        msgType: 'text',
+        code: authorizationCode
+      });
       if (success) {
         return {
           content: [{
@@ -292,6 +338,7 @@ class DingTalkServer {
           }],
         };
       }
+      */
     } catch (error) {
       return {
         content: [{
@@ -304,6 +351,10 @@ class DingTalkServer {
 
   private async handleSearchUsers(query: string, exact_match: boolean = false) {
     try {
+      await this.ensureInitialized();
+      if (!this.client) {
+        throw new Error('DingTalk client is not available');
+      }
       const users = await this.client.searchUsers(query, exact_match);
       if (!users || users.length === 0) {
         return {
@@ -357,6 +408,10 @@ class DingTalkServer {
 
   private async handleGetUserInfo(user_id: string) {
     try {
+      await this.ensureInitialized();
+      if (!this.client) {
+        throw new Error('DingTalk client is not available');
+      }
       const user = await this.client.getUserInfo(user_id);
       if (!user) {
         return {
@@ -371,6 +426,10 @@ class DingTalkServer {
       result += `- 姓名: ${user.name || '未知'}\n`;
       result += `- 用户ID: ${user.userId || '未知'}\n`;
       result += `- 工号: ${user.job_number || '未知'}\n`;
+      result += `- 部门: ${user.department ? user.department.join(', ') : '未知'}\n`;
+      if (user.hired_date) {
+        result += `- 入职时间: ${new Date(user.hired_date).toLocaleString()}\n`;
+      }
       if (user.mobile) {
         result += `- 手机号: ${user.mobile}\n`;
       }

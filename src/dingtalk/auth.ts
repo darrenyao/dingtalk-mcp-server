@@ -1,65 +1,81 @@
-import { Config } from '@alicloud/openapi-client';
-import { GetTokenRequest } from '@alicloud/dingtalk/oauth2_1_0';
-import { default as DingTalkOAuth2 } from '@alicloud/dingtalk/oauth2_1_0';
+const $OpenApi = require('@alicloud/openapi-client');
+const pkg = require('@alicloud/dingtalk');
+const DingTalkOAuth2 = require('@alicloud/dingtalk/oauth2_1_0');
 
-export class DingTalkAuth {
-  private client: DingTalkOAuth2;
-  private appKey: string;
-  private appSecret: string;
-  private accessToken: string = '';
-  private tokenExpiresAt: number = 0;
-
-  constructor(appKey: string, appSecret: string) {
-    this.appKey = appKey;
-    this.appSecret = appSecret;
-    
-    // Initialize DingTalk client
-    const config = new Config({});
-    config.protocol = 'https';
-    config.regionId = 'central';
-    this.client = new DingTalkOAuth2(config);
-  }
-
-  async getAppAccessToken(): Promise<string> {
-    // Check if we have a valid token
-    if (this.accessToken && Date.now() < this.tokenExpiresAt) {
-      return this.accessToken;
-    }
-
-    try {
-      // Get new token using DingTalk SDK
-      const getTokenRequest = new GetTokenRequest({
-        clientId: this.appKey,
-        clientSecret: this.appSecret,
-        grantType: 'client_credentials',
-      });
-
-      const response = await this.client.getToken(this.appKey, getTokenRequest);
-      
-      if (response.body && response.body.accessToken) {
-        // Cache the token
-        this.accessToken = response.body.accessToken;
-        this.tokenExpiresAt = Date.now() + (response.body.expiresIn * 1000);
-        return this.accessToken;
-      } else {
-        throw new Error('Failed to get access token: Invalid response');
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new Error(`Failed to get access token: ${error.message}`);
-      }
-      throw new Error('Failed to get access token: Unknown error');
-    }
-  }
+interface GetAccessTokenRequest {
+  appKey: string;
+  appSecret: string;
 }
 
-export function getAuth(): DingTalkAuth {
-  const appKey = process.env.DINGTALK_APP_KEY;
-  const appSecret = process.env.DINGTALK_APP_SECRET;
+interface GetAccessTokenResponse {
+  accessToken: string;
+  expireIn: number;
+}
 
-  if (!appKey || !appSecret) {
-    throw new Error('DINGTALK_APP_KEY and DINGTALK_APP_SECRET must be set in environment variables');
-  }
+export interface Auth {
+  getAppAccessToken(): Promise<string>;
+  getUserToken(code: string): Promise<string>;
+}
 
-  return new DingTalkAuth(appKey, appSecret);
+export function getAuth(appKey: string, appSecret: string): Auth {
+  let appAccessToken = '';
+  let appAccessTokenExpireTime: number = 0;
+
+  const config = new $OpenApi.Config({});
+  config.protocol = 'https';
+  config.regionId = 'central';
+
+  const oauth2Client = new DingTalkOAuth2.default(config);
+
+  return {
+    async getAppAccessToken(): Promise<string> {
+      const now = Date.now();
+      if (appAccessToken && now < appAccessTokenExpireTime) {
+        return appAccessToken;
+      }
+
+      try {
+        const response = await oauth2Client.getAccessToken({
+          appKey: appKey,
+          appSecret: appSecret,
+        });
+
+        if (!response?.body?.accessToken) {
+          throw new Error('Failed to get access token');
+        }
+
+        appAccessToken = response.body.accessToken;
+        // Set expire time 2 hours from now (minus 5 minutes for safety)
+        appAccessTokenExpireTime = now + (response.body.expireIn * 1000) - (5 * 60 * 1000);
+
+        return appAccessToken;
+      } catch (error) {
+        console.error('Failed to get app access token:', error);
+        throw error;
+      }
+    },
+
+    async getUserToken(code: string): Promise<string> {
+      try {
+        const getUserTokenRequest = new DingTalkOAuth2.GetUserTokenRequest({
+          clientId: appKey,
+          clientSecret: appSecret,
+          code: code,
+          grantType: "authorization_code"
+        });
+
+        const response = await oauth2Client.getUserToken(getUserTokenRequest);
+        console.error('Get user token response:', JSON.stringify(response, null, 2));
+
+        if (!response?.body?.accessToken) {
+          throw new Error('Failed to get user token');
+        }
+
+        return response.body.accessToken;
+      } catch (error) {
+        console.error('Failed to get user token:', error);
+        throw error;
+      }
+    }
+  };
 } 
