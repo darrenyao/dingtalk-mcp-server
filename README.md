@@ -2,6 +2,9 @@
 
 钉钉的 Model Context Protocol (MCP) 服务器实现，使 Claude 能够与钉钉工作空间进行交互。
 
+![image](https://github.com/user-attachments/assets/ac653ce5-057b-4eab-9732-5e23df8af3f7)
+
+
 ## 工具
 
 1. `dingtalk_search_users`
