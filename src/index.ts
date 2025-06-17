@@ -427,11 +427,12 @@ class DingTalkServer {
       result += `- 用户ID: ${user.userId || '未知'}\n`;
       result += `- 工号: ${user.job_number || '未知'}\n`;
       result += `- 部门: ${user.department ? user.department.join(', ') : '未知'}\n`;
+      result += `- unionid: ${user.unionid}\n`;
       if (user.hired_date) {
         result += `- 入职时间: ${new Date(user.hired_date).toLocaleString()}\n`;
       }
-      if (user.unionid) {
-        result += `- unionid: ${user.unionid}\n`;
+      if (user.title) {
+        result += `- 职位: ${user.title}\n`;
       }
       if (user.mobile) {
         result += `- 手机号: ${user.mobile}\n`;
