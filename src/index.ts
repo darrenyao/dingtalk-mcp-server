@@ -430,6 +430,9 @@ class DingTalkServer {
       if (user.hired_date) {
         result += `- 入职时间: ${new Date(user.hired_date).toLocaleString()}\n`;
       }
+      if (user.unionid) {
+        result += `- unionid: ${user.unionid}\n`;
+      }
       if (user.mobile) {
         result += `- 手机号: ${user.mobile}\n`;
       }
